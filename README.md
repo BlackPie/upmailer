@@ -1,1 +1,1 @@
-# Upworm job mailer with advanced filtering
+# Upwork job mailer with advanced filtering

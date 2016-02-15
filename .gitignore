@@ -11,3 +11,5 @@ db.sqlite3*
 .DS_Store
 .AppleDouble
 .LSOverride
+
+settings/local_settings.py

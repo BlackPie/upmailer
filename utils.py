@@ -1,7 +1,6 @@
 import email
-import utils
 import imaplib
-import settings
+import settings.settings as settings
 
 from slugify import slugify
 
@@ -68,7 +67,7 @@ def filter_messages(messages):
     needed_messages = list()
 
     for message in messages:
-        if utils.is_job_acceptable(message):
+        if is_job_acceptable(message):
             needed_messages.append(message)
 
     return needed_messages
