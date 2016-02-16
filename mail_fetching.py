@@ -8,7 +8,8 @@ messages = utils.fetch_new_emails(imap_connection)
 if messages:
     needed_messages = utils.filter_messages(messages)
 
-    print needed_messages
-
     for message in needed_messages:
         utils.send_email(smtp_connection, message)
+
+imap_connection.close()
+smtp_connection.close()

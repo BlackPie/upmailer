@@ -1,11 +1,18 @@
 from constants import *
 
 
-# Email settings
-IMAP_HOST = None
-EMAIL = None
-PASSWORD = None
+# Proxy mail settings
+IMAP_HOST = 'imap.gmail.com'
 
+SMTP_HOST = 'smtp.gmail.com'
+SMTP_PORT = 587
+
+PROXY_EMAIL = None
+PROXY_PASSWORD = None
+
+# Mail settings
+DESTINATION_EMAIL = None
+DESTINATION_PASSWORD = None
 
 # Fetching settings
 MAX_NUMBER_OLD_MESSAGES = 10
@@ -39,7 +46,6 @@ NEEDED_RATING_MIN = None
 
 # Client minimal reviews amount
 NEEDED_REVIEWS_MIN = None
-
 
 try:
     from local_settings import *

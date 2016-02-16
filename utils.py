@@ -1,23 +1,34 @@
+import re
 import email
+import base64
 import imaplib
-import settings.settings as s
+import smtplib
 import constants as c
 
 from slugify import slugify
+from settings import settings as s
+from settings import settings as sss
 
 
 def get_smtp_connection():
-    pass
+    smtp_connection = smtplib.SMTP('%s:%s' % (s.SMTP_HOST, s.SMTP_PORT))
+    try:
+        smtp_connection.ehlo()
+        smtp_connection.starttls()
+        smtp_connection.login(sss.PROXY_EMAIL, sss.PROXY_EMAIL_PASSWORD)
+        return smtp_connection
+    except Exception, e:
+        print "Cant authenticate on the SMTP server. Check your settings please."
+        exit()
 
 
 def get_imap_connection():
     conn = imaplib.IMAP4_SSL(s.IMAP_HOST)
-
     try:
-        conn.login(s.EMAIL, s.PASSWORD)
+        conn.login(s.PROXY_EMAIL, s.PROXY_EMAIL_PASSWORD)
         return conn
     except Exception, e:
-        print "Cant authenticate on the server. Check your settings please."
+        print "Cant authenticate on the IMAP server. Check your settings please."
         exit()
 
 
@@ -39,7 +50,7 @@ def fetch_new_emails(imap_connection):
 
 
 def extract_metadata(message):
-    raw_message = message.get_payload()[0].get_payload()
+    raw_message = message.as_string()
     text1 = raw_message.split('Job metadata')
     text2 = text1[1].split('Client metadata')
     raw_job_metadata = text2[0]
@@ -99,6 +110,7 @@ def is_job_acceptable(message):
 
     return True
 
+
 def filter_messages(messages):
     needed_messages = list()
 
@@ -109,5 +121,25 @@ def filter_messages(messages):
     return needed_messages
 
 
+def prepare_message(message):
+    email_from = s.PROXY_EMAIL
+    email_to = s.DESTINATION_EMAIL
+    extracted_text = message.as_string().split('A new job post has matched your criterias:')[1].split('------------------------------')[0]
+
+    result_message = "\r\n".join([
+        "From: %s" % email_from,
+        "To: %s" % email_to,
+        "Subject: New Job",
+        "",
+        "%s" % extracted_text
+        ])
+
+    return result_message
+
+
 def send_email(smtp_connection, message):
-    pass
+    prepared_message = prepare_message(message)
+    email_from = s.PROXY_EMAIL
+    email_to = s.DESTINATION_EMAIL
+
+    smtp_connection.sendmail(email_from, [email_to], prepared_message)
