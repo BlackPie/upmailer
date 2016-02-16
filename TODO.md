@@ -6,3 +6,4 @@
 [ ] Payment status handling
 [ ] Skills handling
 [ ] Excluding filters
+[ ] Daemon restart

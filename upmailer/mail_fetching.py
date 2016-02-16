@@ -1,5 +1,4 @@
-import utils
-
+from upmailer import utils
 
 imap_connection = utils.get_imap_connection()
 smtp_connection = utils.get_smtp_connection()

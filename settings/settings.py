@@ -1,6 +1,3 @@
-from constants import *
-
-
 # Proxy mail settings
 IMAP_HOST = 'imap.gmail.com'
 
