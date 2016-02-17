@@ -2,9 +2,23 @@
 
 import sys
 import time
+import utils
 
-from upmailer import utils
-from upmailer.daemon.base import Daemon
+from daemon.base import Daemon
+
+
+# it makes debugging simple
+def daemon_function(imap_connection, smtp_connection):
+    messages, id_list = utils.fetch_new_emails(imap_connection)
+
+    if messages:
+
+        needed_messages = utils.filter_messages(messages)
+
+        for message in needed_messages:
+            utils.send_email(smtp_connection, message)
+
+        utils.mark_messages_as_seen(imap_connection, id_list)
 
 
 class MyDaemon(Daemon):
@@ -16,13 +30,7 @@ class MyDaemon(Daemon):
     def run(self):
         while True:
             time.sleep(60)
-            messages = utils.fetch_new_emails(imap_connection)
-
-            if messages:
-                needed_messages = utils.filter_messages(messages)
-
-                for message in needed_messages:
-                    utils.send_email(smtp_connection, message)
+            daemon_function(self.imap_connection, self.smtp_connection)
 
 
 if __name__ == "__main__":
@@ -36,6 +44,8 @@ if __name__ == "__main__":
             daemon.imap_connection.quit()
             daemon.smtp_connection.quit()
             daemon.stop()
+        elif 'test' == sys.argv[1]:
+            daemon_function(imap_connection, smtp_connection)
         # elif 'restart' == sys.argv[1]:
         #     daemon.restart()
         else:

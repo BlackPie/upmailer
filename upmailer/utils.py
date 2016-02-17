@@ -1,13 +1,10 @@
-import re
 import email
-import base64
 import imaplib
 import smtplib
 import constants as c
 
 from slugify import slugify
 from settings import settings as s
-from settings import settings as sss
 
 
 def get_smtp_connection():
@@ -15,7 +12,7 @@ def get_smtp_connection():
     try:
         smtp_connection.ehlo()
         smtp_connection.starttls()
-        smtp_connection.login(sss.PROXY_EMAIL, sss.PROXY_EMAIL_PASSWORD)
+        smtp_connection.login(s.PROXY_EMAIL, s.PROXY_EMAIL_PASSWORD)
         return smtp_connection
     except Exception, e:
         print "Cant authenticate on the SMTP server. Check your settings please."
@@ -25,6 +22,7 @@ def get_smtp_connection():
 def get_imap_connection():
     conn = imaplib.IMAP4_SSL(s.IMAP_HOST)
     try:
+        print s.PROXY_EMAIL, s.PROXY_EMAIL_PASSWORD
         conn.login(s.PROXY_EMAIL, s.PROXY_EMAIL_PASSWORD)
         return conn
     except Exception, e:
@@ -34,19 +32,23 @@ def get_imap_connection():
 
 def fetch_new_emails(imap_connection):
     imap_connection.select("inbox")
-    result, data = imap_connection.search(None, "ALL")  # TODO make it smart
-    id_list = data[0].split()#[:settings.MAX_NUMBER_OLD_MESSAGES]
+    result, data = imap_connection.search(None, 'UnSeen')
+    id_list = data[0].split()
     message_list = list()
+
+    print id_list
+    print message_list
 
     for message_id in id_list:
         result, data = imap_connection.fetch(message_id, "(RFC822)")
         raw_email = data[0][1]
         message = email.message_from_string(raw_email)
 
-        if s.LANCEMONITOR_EMAIL in message['from']:
-            message_list.append(message)
+        # if s.LANCEMONITOR_EMAIL in message['from']:
+        #     message_list.append(message)
 
-    return message_list
+        message_list.append(message)
+    return message_list, id_list
 
 
 def extract_metadata(message):
@@ -57,16 +59,22 @@ def extract_metadata(message):
     raw_client_metadata = text2[1].split('--------------')[0]
     job_metadata = dict()
     client_metadata = dict()
-    job_variables = raw_job_metadata.split('\r\n')[:-1]
-    client_variables = raw_client_metadata.split('\r\n')[:-2]
+    job_variables = [x for x in raw_job_metadata.split('\r\n') if x]
+    client_variables = [x for x in raw_client_metadata.split('\r\n') if x]
 
     for var in job_variables:
-        key, value = var.split(': ')
-        job_metadata.update({slugify(key).replace('-', '_'): value})
+        try:
+            key, value = var.split(': ')
+            job_metadata.update({slugify(key).replace('-', '_'): value})
+        except ValueError:
+            pass
 
     for var in client_variables:
-        key, value = var.split(': ')
-        client_metadata.update({slugify(key).replace('-', '_'): value})
+        try:
+            key, value = var.split(': ')
+            client_metadata.update({slugify(key).replace('-', '_'): value})
+        except ValueError:
+            pass
 
     return job_metadata, client_metadata
 
@@ -124,7 +132,13 @@ def filter_messages(messages):
 def prepare_message(message):
     email_from = s.PROXY_EMAIL
     email_to = s.DESTINATION_EMAIL
-    extracted_text = message.as_string().split('A new job post has matched your criterias:')[1].split('------------------------------')[0]
+    # TODO: regex
+    extracted_text = message.as_string().split('A new job post has matched your criterias:')
+
+    try:
+        extracted_text = extracted_text[1].split('------------------------------')[0]
+    except:
+        extracted_text = extracted_text[0]
 
     result_message = "\r\n".join([
         "From: %s" % email_from,
@@ -143,3 +157,8 @@ def send_email(smtp_connection, message):
     email_to = s.DESTINATION_EMAIL
 
     smtp_connection.sendmail(email_from, [email_to], prepared_message)
+
+
+def mark_messages_as_seen(imap_connection, id_list):
+    for message_id in id_list:
+        imap_connection.store(message_id, '+FLAGS', '\Seen')

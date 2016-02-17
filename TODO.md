@@ -7,3 +7,4 @@
 [ ] Skills handling
 [ ] Excluding filters
 [ ] Daemon restart
+[ ] Add regexps
