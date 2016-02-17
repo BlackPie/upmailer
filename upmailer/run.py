@@ -8,7 +8,9 @@ from daemon.base import Daemon
 
 
 # it makes debugging simple
-def daemon_function(imap_connection, smtp_connection):
+def daemon_function():
+    imap_connection = utils.get_imap_connection()
+    smtp_connection = utils.get_smtp_connection()
     messages, id_list = utils.fetch_new_emails(imap_connection)
 
     if messages:
@@ -18,34 +20,40 @@ def daemon_function(imap_connection, smtp_connection):
         for message in needed_messages:
             utils.send_email(smtp_connection, message)
 
-        utils.mark_messages_as_seen(imap_connection, id_list)
+    utils.mark_messages_as_seen(imap_connection, id_list)
+
+    imap_connection.close()
+    imap_connection.logout()
+    smtp_connection.quit()
+
+
+def cycle_test():
+    i = 0
+    while True:
+        time.sleep(10)
+        print i
+        i += 1
+        daemon_function()
 
 
 class MyDaemon(Daemon):
-    def __init__(self, pidfile, imap_connection, smtp_connection):
-        super(MyDaemon, self).__init__(pidfile)
-        self.imap_connection = imap_connection
-        self.smtp_connection = smtp_connection
-
     def run(self):
         while True:
             time.sleep(60)
-            daemon_function(self.imap_connection, self.smtp_connection)
+            daemon_function()
 
 
 if __name__ == "__main__":
-    imap_connection = utils.get_imap_connection()
-    smtp_connection = utils.get_smtp_connection()
-    daemon = MyDaemon('/tmp/upmailer.pid', imap_connection, smtp_connection)
+    daemon = MyDaemon('/tmp/upmailer.pid')
     if len(sys.argv) == 2:
         if 'start' == sys.argv[1]:
             daemon.start()
         elif 'stop' == sys.argv[1]:
-            daemon.imap_connection.quit()
-            daemon.smtp_connection.quit()
             daemon.stop()
         elif 'test' == sys.argv[1]:
-            daemon_function(imap_connection, smtp_connection)
+            daemon_function()
+        elif 'cycle_test' == sys.argv[1]:
+            cycle_test()
         # elif 'restart' == sys.argv[1]:
         #     daemon.restart()
         else:

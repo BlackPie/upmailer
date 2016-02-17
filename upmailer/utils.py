@@ -22,7 +22,6 @@ def get_smtp_connection():
 def get_imap_connection():
     conn = imaplib.IMAP4_SSL(s.IMAP_HOST)
     try:
-        print s.PROXY_EMAIL, s.PROXY_EMAIL_PASSWORD
         conn.login(s.PROXY_EMAIL, s.PROXY_EMAIL_PASSWORD)
         return conn
     except Exception, e:
@@ -36,9 +35,6 @@ def fetch_new_emails(imap_connection):
     id_list = data[0].split()
     message_list = list()
 
-    print id_list
-    print message_list
-
     for message_id in id_list:
         result, data = imap_connection.fetch(message_id, "(RFC822)")
         raw_email = data[0][1]
@@ -48,6 +44,7 @@ def fetch_new_emails(imap_connection):
         #     message_list.append(message)
 
         message_list.append(message)
+
     return message_list, id_list
 
 
@@ -80,6 +77,10 @@ def extract_metadata(message):
 
 
 def is_job_acceptable(message):
+    if 'Job metadata' not in message.as_string() or\
+       'Client metadata' not in message.as_string():
+        return False
+
     job_metadata, client_metadata = extract_metadata(message)
 
     if s.NEEDED_WORKLOAD and c.WORKLOAD_TAG in job_metadata:
@@ -102,7 +103,6 @@ def is_job_acceptable(message):
             return False
 
     if s.NEEDED_HIRES_MIN and s.NEEDED_HIRES_MIN > client_metadata[c.PAST_HIRES_TAG]:
-        print 5
         return False
 
     if s.NEEDED_HIRE_RATIO:
@@ -147,7 +147,6 @@ def prepare_message(message):
         "",
         "%s" % extracted_text
         ])
-
     return result_message
 
 
